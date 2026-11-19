@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="100" fill="#1E293B" />
+  <!-- Head -->
+  <circle cx="100" cy="75" r="32" fill="#64748B" />
+  <!-- Shoulders / body -->
+  <ellipse cx="100" cy="165" rx="55" ry="40" fill="#64748B" />
+  <!-- Subtle ring accent -->
+  <circle cx="100" cy="100" r="96" fill="none" stroke="#3B82F6" stroke-width="2.5" opacity="0.6" />
+</svg>
