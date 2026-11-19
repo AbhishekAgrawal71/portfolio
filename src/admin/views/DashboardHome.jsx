@@ -107,7 +107,7 @@ export const DashboardHome = ({ setActiveTab, showToast }) => {
           </div>
         </div>
 
-        {configured && (
+        {configured && !isFromDb ? (
           <button
             type="button"
             className="admin-btn admin-btn--primary"
@@ -117,7 +117,11 @@ export const DashboardHome = ({ setActiveTab, showToast }) => {
             {seeding ? <RefreshCw size={15} className="spin-icon" /> : <Sparkles size={15} />}
             {seeding ? 'Seeding...' : 'Seed Database from Static Data'}
           </button>
-        )}
+        ) : isFromDb ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontSize: '0.85rem', fontWeight: 500, padding: '0.5rem 0.85rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '0.5rem', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+            <CheckCircle2 size={16} /> Live Database Synced
+          </div>
+        ) : null}
       </div>
 
       {/* Stats Grid */}

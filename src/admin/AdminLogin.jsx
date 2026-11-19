@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Lock, Mail, KeyRound, AlertCircle, ArrowLeft, CheckCircle2, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Lock, Mail, KeyRound, AlertCircle, ArrowLeft, CheckCircle2, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './AdminLogin.css';
 
-export const AdminLogin = () => {
-  const { signIn, resetPassword, isConfigured } = useAuth();
+export const AdminLogin = ({ isRecoveryMode = false }) => {
+  const { signIn, resetPassword, updatePassword, isPasswordRecovery, setIsPasswordRecovery, isConfigured } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,6 +12,13 @@ export const AdminLogin = () => {
   const [resetSent, setResetSent] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+
+  // Password recovery form state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoverySuccess, setRecoverySuccess] = useState(false);
+
+  const isResetting = isRecoveryMode || isPasswordRecovery;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +58,149 @@ export const AdminLogin = () => {
     }
   };
 
+  const handleSetNewPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!newPassword || newPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await updatePassword(newPassword);
+      setRecoverySuccess(true);
+      // Clean up URL hash tokens safely
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch (err) {
+      console.error('Password update error:', err);
+      setError(err.message || 'Failed to update password. Please try requesting a new link.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render Password Recovery / Set New Password Screen
+  if (isResetting) {
+    return (
+      <div className="admin-login-wrapper">
+        <div className="admin-login-card">
+          <div className="admin-login-header">
+            <div className="admin-login-badge" style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.15)' }}>
+              <KeyRound size={22} />
+            </div>
+            <h1 className="admin-login-title">Set New Password</h1>
+            <p className="admin-login-subtitle">Choose a new, secure password for your administrator account</p>
+          </div>
+
+          {error && (
+            <div className="admin-login-alert admin-login-alert--error">
+              <AlertCircle size={18} className="alert-icon" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {recoverySuccess ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.25rem',
+              }}>
+                <CheckCircle2 size={36} />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.5rem' }}>
+                Password Updated!
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.75rem', lineHeight: 1.5 }}>
+                Your administrator password has been updated successfully. You can now access your dashboard.
+              </p>
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary admin-btn--block"
+                onClick={() => {
+                  setIsPasswordRecovery(false);
+                }}
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          ) : (
+            <form className="admin-login-form" onSubmit={handleSetNewPassword}>
+              <div className="admin-form-group">
+                <label htmlFor="new-password">New Password</label>
+                <div className="admin-input-icon-wrapper">
+                  <KeyRound size={16} className="admin-input-icon" />
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="confirm-password">Confirm Password</label>
+                <div className="admin-input-icon-wrapper">
+                  <KeyRound size={16} className="admin-input-icon" />
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your new password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="admin-btn admin-btn--primary admin-btn--block"
+                disabled={loading}
+              >
+                {loading ? 'Updating Password...' : 'Save New Password'}
+              </button>
+
+              <div className="admin-login-footer" style={{ marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="admin-back-link"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  onClick={() => setIsPasswordRecovery(false)}
+                >
+                  <ArrowLeft size={14} /> Back to Sign In
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Normal Sign In Screen
   return (
     <div className="admin-login-wrapper">
       <div className="admin-login-card">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, MapPin, Upload, Save, RefreshCw, Image } from 'lucide-react';
 import { getAdminProfile, updateAdminProfile } from '../../services/portfolioService';
-import { uploadFile, BUCKETS } from '../../services/storageService';
+import { uploadFile, deleteFile, BUCKETS } from '../../services/storageService';
 import { usePortfolioData } from '../../context/PortfolioContext';
 
 export const ProfileManager = ({ showToast }) => {
@@ -69,8 +69,15 @@ export const ProfileManager = ({ showToast }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+
     if (!profileId) {
       showToast?.('error', 'Profile record ID not found in database. Please run seed first.');
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.title.trim()) {
+      showToast?.('error', 'Name and Title are required.');
       return;
     }
 
@@ -81,16 +88,23 @@ export const ProfileManager = ({ showToast }) => {
         .map(t => t.trim())
         .filter(Boolean);
 
+      const oldImage = personal?.profileImage;
+
       await updateAdminProfile(profileId, {
-        name: formData.name,
-        title: formData.title,
+        name: formData.name.trim(),
+        title: formData.title.trim(),
         taglines: taglinesArray,
         bio: formData.bio,
         about_me: formData.about_me,
-        email: formData.email,
-        location: formData.location,
+        email: formData.email.trim(),
+        location: formData.location.trim(),
         profile_image_url: formData.profile_image_url,
       });
+
+      // If replacing an old uploaded image, clean up the previous storage file
+      if (oldImage && oldImage !== formData.profile_image_url && oldImage.includes(BUCKETS.PROFILE)) {
+        await deleteFile(BUCKETS.PROFILE, oldImage);
+      }
 
       await refreshData();
       showToast?.('success', 'Profile updated successfully!');

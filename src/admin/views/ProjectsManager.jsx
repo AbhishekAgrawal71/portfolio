@@ -22,7 +22,7 @@ import {
   updateAdminProject,
   deleteAdminProject
 } from '../../services/portfolioService';
-import { uploadFile, BUCKETS } from '../../services/storageService';
+import { uploadFile, deleteFile, BUCKETS } from '../../services/storageService';
 import ConfirmModal from '../components/ConfirmModal';
 import { usePortfolioData } from '../../context/PortfolioContext';
 
@@ -237,6 +237,9 @@ export const ProjectsManager = ({ showToast }) => {
 
     try {
       await deleteAdminProject(deleteTarget.id);
+      if (deleteTarget.image_url && deleteTarget.image_url.includes(BUCKETS.PROJECTS)) {
+        await deleteFile(BUCKETS.PROJECTS, deleteTarget.image_url);
+      }
       showToast?.('success', `Deleted "${deleteTarget.title}".`);
       setDeleteTarget(null);
       await loadProjects();

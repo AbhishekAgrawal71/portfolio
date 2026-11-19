@@ -1,196 +1,226 @@
 # Portfolio Admin & Supabase Setup Guide
 
-A complete, step-by-step guide to setting up your private **Supabase** backend for Abhishek Agrawal's developer portfolio. 
+A complete, production-ready guide to configuring your private **Supabase** backend for Abhishek Agrawal's developer portfolio.
 
-Once configured, you will have a private dashboard at `/admin` to add, edit, reorder, delete, and manage all projects, experiences, skills, certificates, resumes, and settings without touching code.
-
----
-
-## Table of Contents
-
-1. [How to Create the Supabase Project](#1-how-to-create-the-supabase-project)
-2. [How to Configure Environment Variables](#2-how-to-configure-environment-variables)
-3. [How to Create Your Admin Account](#3-how-to-create-your-admin-account)
-4. [How to Run Database Migrations](#4-how-to-run-database-migrations)
-5. [How to Configure Storage Buckets](#5-how-to-configure-storage-buckets)
-6. [How to Run the Site Locally](#6-how-to-run-the-site-locally)
-7. [How to Deploy It for Free](#7-how-to-deploy-it-for-free)
-8. [How to Access /admin](#8-how-to-access-admin)
-9. [How to Reset Your Admin Password](#9-how-to-reset-your-admin-password)
-10. [How to Back Up Your Portfolio Data](#10-how-to-back-up-your-portfolio-data)
+Once configured, you have a private dashboard at `/admin` to add, edit, reorder, delete, and manage all projects, experiences, skills, certificates, resumes, and site settings without touching source code.
 
 ---
 
-## 1. How to Create the Supabase Project
+## Architecture Overview
 
-1. Go to [https://supabase.com](https://supabase.com) and click **"Start your project"** (sign in with your GitHub account).
+```
+Public Portfolio (Visitors)                  Private Dashboard (/admin)
+          │                                              │
+          ▼                                              ▼
+   [Public Reads]                             [Admin Authorization Check]
+          │                                  (auth.uid() in public.admin_users)
+          │                                              │
+          └──────────────────────┬───────────────────────┘
+                                 ▼
+                     Supabase Cloud Backend
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+   PostgreSQL DB           Authentication             Storage
+(RLS: is_admin() writes)  (JWT session tokens)  (Bucket limits + RLS)
+```
+
+### Security & Defense-in-Depth Model:
+1. **Database RLS Boundary**: Every table enforces Row Level Security. Write permissions (`INSERT`, `UPDATE`, `DELETE`) require `public.is_admin() = true`.
+2. **UUID-Based Authorization**: A dedicated `public.admin_users` table stores authorized Supabase User UUIDs. No reliance on insecure client-side claims or hardcoded emails.
+3. **Storage Policies**: Storage buckets (`profile-images`, `project-images`, `certificates`, `resumes`) allow public file viewing, but require `public.is_admin()` for uploading, updating, or deleting files. Bucket-level MIME type and file size limits are enforced on the server.
+4. **Protected Route Guard**: Visiting `/admin` checks both session authentication and `public.admin_users` registration. Non-admin users are strictly blocked with an Unauthorized message.
+5. **Static Fallback**: If Supabase credentials are missing or the database is unavailable, the public portfolio seamlessly falls back to local static files in `src/data/*.js`.
+
+---
+
+## Recommended Step-by-Step Setup Order
+
+Follow these steps in exact order to configure your portfolio backend:
+
+### Step 1: Create Supabase Project
+1. Go to [https://supabase.com](https://supabase.com) and click **"Start your project"** (sign in with GitHub).
 2. Click **"New Project"**.
-3. Fill in the project details:
-   - **Name**: `portfolio` (or any name you prefer)
+3. Fill in the details:
+   - **Name**: `portfolio`
    - **Database Password**: Choose a strong password and save it in a password manager.
-   - **Region**: Choose the region closest to you (e.g. `South Asia (Mumbai)` or `East US`).
+   - **Region**: Choose a region close to your primary audience (e.g. `South Asia (Mumbai)` or `East US`).
    - **Pricing Plan**: Free tier ($0/month).
-4. Click **"Create new project"**. Wait 1–2 minutes for Supabase to provision your database.
+4. Click **"Create new project"** and wait ~2 minutes for provisioning.
 
 ---
 
-## 2. How to Configure Environment Variables
-
-1. In your Supabase dashboard, navigate to **Project Settings** (gear icon at the bottom of the left sidebar) → **API**.
-2. Locate the following two values:
-   - **Project URL** (looks like `https://abcdefghijkl.supabase.co`)
-   - **Project API Keys** → `anon` `public` (a long string starting with `eyJ...`)
-3. In your project directory (`e:\portfolio`), open or create the `.env` file:
+### Step 2: Configure Local `.env`
+1. In your Supabase dashboard, navigate to **Project Settings** (gear icon) → **API**.
+2. Locate:
+   - **Project URL** (`https://<project-ref>.supabase.co`)
+   - **Project API Keys** → `anon` `public` (`eyJ...`)
+3. In your local project root (`e:\portfolio`), create or edit `.env`:
    ```env
    VITE_SUPABASE_URL=https://your-project-id.supabase.co
    VITE_SUPABASE_ANON_KEY=your-actual-anon-key-here
    ```
-4. **Important**: Never commit your `.env` file to Git. It is already included in `.gitignore`.
+4. **Security Notice**: Never commit `.env` to Git. It is listed in `.gitignore`. The client browser ONLY uses the safe `anon` key. Never provide your `service_role` key to the frontend.
 
 ---
 
-## 3. How to Create Your Admin Account
+### Step 3: Run Database Schema / Production Patch
+- **For an Existing Database** (already ran schema.sql previously):
+  1. In your Supabase dashboard, click **SQL Editor** → **New query**.
+  2. Open `supabase/production_fix_patch.sql`, copy its entire contents, paste and click **Run**.
+  3. This immediately grants required PostgreSQL table permissions to `anon` and `authenticated`, adds the single-active-resume trigger, updates skills visibility RLS, and maintains 100% of your existing data.
 
-1. In your Supabase dashboard, click on **Authentication** (person icon in the left menu) → **Users**.
+- **For a Fresh Database** (first time setup):
+  1. In the Supabase dashboard, click **SQL Editor** → **New query**.
+  2. Open `supabase/schema.sql`, copy its entire contents, paste and click **Run**.
+  3. This creates all 13 tables, sets up table grants, RLS write policies, storage buckets, and seeds your initial portfolio data.
+
+---
+
+### Step 4: Create Supabase Auth User
+1. In the Supabase dashboard, click **Authentication** (users icon in left menu) → **Users**.
 2. Click **"Add user"** → **"Create user"**.
 3. Enter:
-   - **User Email**: Your email (e.g. `abhi713111@gmail.com`)
-   - **Password**: Create a secure password for your admin account.
-   - Toggle **"Auto Confirm User?"** to **ON** (so you don't need to click a verification email).
+   - **User Email**: Your admin email (e.g. `abhi713111@gmail.com`)
+   - **Password**: Choose a strong administrator password.
+   - **Auto Confirm User?**: Toggle **ON** (so email verification is not required).
 4. Click **"Create user"**.
-5. You can now use this email and password to log in at `/admin`.
 
 ---
 
-## 4. How to Run Database Migrations
-
-You have two easy ways to set up and populate all database tables:
-
-### Method A: One-Click SQL Script (Recommended)
-
-1. In your Supabase dashboard, go to the **SQL Editor** (terminal icon in left menu).
-2. Click **"New query"**.
-3. Open the file **`supabase/schema.sql`** from your project folder.
-4. Copy its entire contents, paste it into the Supabase SQL Editor query window, and click **"Run"** (or press `Ctrl + Enter`).
-5. This automatically:
-   - Creates all 12 tables (`profile`, `projects`, `experience`, `education`, `skill_categories`, `skills`, `certificates`, `achievements`, `publications`, `social_links`, `site_settings`, `resumes`).
-   - Configures strict **Row Level Security (RLS)** policies.
-   - Sets up Storage buckets.
-   - Pre-seeds all your existing projects, experience, skills, and education!
-
-### Method B: Seed via Admin Dashboard
-If you already ran the table creation or prefer doing it through the UI:
-1. Log in to `/admin`.
-2. On the **Overview / Dashboard** page, you will see a button: **"Seed Database from Static Data"**.
-3. Click it. It will automatically upload your existing portfolio data directly into Supabase.
+### Step 5: Copy User UUID
+1. In the **Authentication** → **Users** table, find your newly created user row.
+2. Under the **User UID** column, copy the UUID string (it looks like `a1b2c3d4-e5f6-7890-abcd-ef1234567890`).
 
 ---
 
-## 5. How to Configure Storage Buckets
+### Step 6: Bootstrap Admin Privileges via SQL Editor
+Because admin RLS policies are active, you must run a one-time SQL command to register your UUID in `public.admin_users`:
 
-If you ran `supabase/schema.sql`, your 4 storage buckets are already configured. To verify:
-
-1. In your Supabase dashboard, click **Storage** (bucket icon in the left sidebar).
-2. Ensure you have the following 4 public buckets:
-   - `profile-images` (Public)
-   - `project-images` (Public)
-   - `certificates` (Public)
-   - `resumes` (Public)
-3. If any bucket is missing, click **"New bucket"**, name it exactly as listed above, and check the box **"Public bucket"**.
-
-### Storage Policies (RLS)
-The SQL schema automatically configures storage security:
-- **Public**: Anyone visiting your portfolio can view/download images, PDFs, and your resume.
-- **Authenticated Only**: Only you (signed in as admin) can upload, replace, or delete files.
-
----
-
-## 6. How to Run the Site Locally
-
-1. Open your terminal in `e:\portfolio`:
-   ```bash
-   # Install dependencies (if not already done)
-   npm install
-
-   # Start local dev server
-   npm run dev
-   ```
-2. Open [http://localhost:5173](http://localhost:5173) in your browser.
-   - The public portfolio will load smoothly.
-   - If Supabase is connected, it fetches live data.
-   - If Supabase is not connected yet, it seamlessly falls back to static files.
-
----
-
-## 7. How to Deploy It for Free
-
-### Deploying to Vercel (Recommended)
-
-1. Push your portfolio code to GitHub:
-   ```bash
-   git add .
-   git commit -m "Add Supabase admin dashboard"
-   git push origin main
-   ```
-2. Log in to [Vercel](https://vercel.com) and click **"Add New Project"** → select your GitHub repository.
-3. In the project configuration, open **Environment Variables** and add:
-   - `VITE_SUPABASE_URL`: Your Supabase Project URL
-   - `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key
-4. Click **"Deploy"**.
-5. Vercel automatically deploys your site with SSL and free global CDN.
-
----
-
-## 8. How to Access /admin
-
-- **URL**: Navigate to `https://your-domain.com/admin` (or `http://localhost:5173/admin` locally).
-- **Privacy**: The admin link is completely private and is **not** linked anywhere on the public portfolio.
-- **Login**: Enter the admin email and password you created in Step 3.
-- **Dashboard Features**:
-  - **Overview**: Real-time stats and quick action shortcuts.
-  - **Profile**: Edit bio, name, title, and upload new profile photo.
-  - **Projects**: Create, edit, duplicate, delete, reorder, toggle featured, and upload screenshots.
-  - **Experience**: Add and edit internships, bullet responsibilities, and dates.
-  - **Education**: Update degree status, CGPA, and coursework.
-  - **Skills**: Create categories with custom icons; add/remove skill badges dynamically.
-  - **Certificates**: Upload certificate images or PDFs, set credential URLs.
-  - **Achievements**: Manage leadership roles and committee positions.
-  - **Publications**: Add research papers and links (automatically shows/hides section).
-  - **Resume**: Upload new PDF resume with automatic replacement and preview.
-  - **Social Links**: Toggle visibility and URLs for GitHub, LinkedIn, InsiderOne, etc.
-  - **Site Settings**: Toggle whole sections on or off with a switch.
-
----
-
-## 9. How to Reset Your Admin Password
-
-### Option A: From the Login Page
-1. Go to `/admin`.
-2. Click **"Forgot password?"**.
-3. Enter your admin email and click **"Send Reset Link"**.
-4. Check your inbox for the reset email from Supabase and follow the link to set a new password.
-
-### Option B: Directly from Supabase Dashboard
-1. Go to your Supabase dashboard → **Authentication** → **Users**.
-2. Click the three dots `...` next to your admin user.
-3. Select **"Send password recovery"** or click **"Edit user"** to manually update the password.
-
----
-
-## 10. How to Back Up Your Portfolio Data
-
-### Backup Method A: Supabase Automated Backups
-Supabase automatically takes daily backups of your PostgreSQL database (available under **Project Settings** → **Database** → **Backups**).
-
-### Backup Method B: Export Data via SQL
-To take an instant manual backup of all your content:
-1. In Supabase, go to **SQL Editor**.
-2. Run:
+1. In the Supabase dashboard, open **SQL Editor** → **New query**.
+2. Run the following command (replace the placeholder with your actual copied UUID):
    ```sql
-   -- View and copy all projects as JSON
-   SELECT json_agg(p) FROM public.projects p;
+   INSERT INTO public.admin_users (user_id)
+   VALUES ('00000000-0000-0000-0000-000000000000'); -- Replace with your actual user UID
    ```
-3. Or export individual tables as CSV:
-   - Go to **Table Editor** (spreadsheet icon in left sidebar).
-   - Select any table (e.g. `projects`, `experience`).
-   - Click **"Export"** → **"Export to CSV"**.
+3. Click **"Run"**. Your account is now fully authorized as the portfolio administrator!
+
+---
+
+### Step 7: Defense-in-Depth: Disable Public Email Signup (Recommended)
+Because this is your personal portfolio, external visitors do not need to register accounts.
+1. In the Supabase dashboard, go to **Authentication** → **Sign In / Up** (or **Providers** → **Email**).
+2. Toggle OFF **"Allow new users to sign up"**.
+3. Click **Save**.
+> **Note**: Even if public signup remains enabled, unauthorized users who sign up will have zero write permissions in the database and storage, and will be blocked by `/admin` with an Unauthorized message.
+
+---
+
+### Step 8: Start Local Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser. Verify the public portfolio loads live data from Supabase.
+
+---
+
+### Step 9: Login at `/admin`
+1. Navigate to [http://localhost:5173/admin](http://localhost:5173/admin).
+2. Enter your admin email and password created in Step 4.
+3. Click **"Sign In to Dashboard"**.
+4. The dashboard overview will load with a green **"Supabase Live DB"** badge.
+
+---
+
+### Step 10: Test Dashboard CRUD & File Uploads
+1. Go to **Projects** → click **"New Project"**, fill in test details, and click **"Save Project"**.
+2. Verify the project appears in the list and reflects on the public site at [http://localhost:5173](http://localhost:5173).
+3. Test editing, reordering, visibility toggling, and deleting the test project.
+4. Test uploading a profile picture in **Profile** (max 5 MB; JPG, PNG, WEBP).
+
+---
+
+### Step 11: Create GitHub Repository
+1. Go to [https://github.com/new](https://github.com/new) and create a repository (e.g. `portfolio`).
+2. Keep it public or private according to your preference.
+
+---
+
+### Step 12: Push Source Code
+In your project terminal (`e:\portfolio`):
+```bash
+git add .
+git commit -m "Production release: Supabase admin authorization, RLS security, SPA routing, upload validation"
+git branch -M main
+git remote add origin https://github.com/AbhishekAgrawal71/portfolio.git
+git push -u origin main
+```
+*(Verify `.env` is NOT committed; `git status` will confirm `.env` is ignored).*
+
+---
+
+### Step 13: Import Repository into Vercel
+1. Log in to [https://vercel.com](https://vercel.com) (sign in with your GitHub account).
+2. Click **"Add New Project"** and select your `portfolio` repository.
+3. Framework Preset will automatically detect **Vite**. Root directory should be `./`.
+
+---
+
+### Step 14: Add Environment Variables in Vercel
+Before clicking Deploy, expand the **Environment Variables** section and add:
+- `VITE_SUPABASE_URL`: `https://your-project-id.supabase.co`
+- `VITE_SUPABASE_ANON_KEY`: `your-anon-key`
+
+---
+
+### Step 15: Deploy
+Click **"Deploy"**. Vercel will build the project using `vercel.json` rewrites and `vite.config.js` (`base: '/'`).
+In ~1 minute, your site is live with a free SSL domain (e.g., `https://abhishek-portfolio.vercel.app`).
+
+---
+
+### Step 16: Test Production `/admin`
+1. Visit `https://your-domain.vercel.app/admin`.
+2. Directly refresh the page (verifies `vercel.json` SPA rewrite works).
+3. Log in with your admin credentials.
+4. Verify you can manage your portfolio in production.
+
+---
+
+## File Upload Constraints
+
+Client-side and server-side rules are strictly enforced:
+
+| Bucket | Max File Size | Allowed MIME Types | Allowed Extensions |
+| :--- | :--- | :--- | :--- |
+| `profile-images` | 5 MB | `image/jpeg`, `image/png`, `image/webp` | `.jpg`, `.jpeg`, `.png`, `.webp` |
+| `project-images` | 5 MB | `image/jpeg`, `image/png`, `image/webp` | `.jpg`, `.jpeg`, `.png`, `.webp` |
+| `certificates` | 10 MB | `image/jpeg`, `image/png`, `image/webp`, `application/pdf` | `.jpg`, `.jpeg`, `.png`, `.webp`, `.pdf` |
+| `resumes` | 10 MB | `application/pdf` | `.pdf` |
+
+---
+
+## Password Recovery Flow
+
+1. On the `/admin` login screen, click **"Forgot password?"**.
+2. Enter your admin email and click **"Send Reset Link"**.
+3. Check your inbox and click the reset link in the email from Supabase.
+4. The link redirects to your `/admin` route with a recovery hash token.
+5. The application detects the recovery session and displays the **"Set New Password"** interface.
+6. Enter a new password (minimum 8 characters), confirm it, and submit.
+7. Your password is automatically updated via `supabase.auth.updateUser()`.
+
+---
+
+## Supabase Auth URL Configuration
+
+To ensure password reset links and authentication callbacks redirect properly:
+1. In your Supabase dashboard, go to **Authentication** → **URL Configuration**.
+2. Set **Site URL**:
+   - For local development: `http://localhost:5173`
+   - After Vercel deployment: `https://your-portfolio-domain.vercel.app`
+3. Under **Redirect URLs**, add:
+   - `http://localhost:5173/admin`
+   - `http://localhost:5173/**`
+   - `https://your-portfolio-domain.vercel.app/admin` (add after deploying)
+   - `https://your-portfolio-domain.vercel.app/**`
+4. Click **Save**.

@@ -16,7 +16,7 @@ import {
   setAdminActiveResume,
   deleteAdminResume
 } from '../../services/portfolioService';
-import { uploadFile, BUCKETS } from '../../services/storageService';
+import { uploadFile, deleteFile, BUCKETS } from '../../services/storageService';
 import ConfirmModal from '../components/ConfirmModal';
 import { usePortfolioData } from '../../context/PortfolioContext';
 
@@ -52,16 +52,17 @@ export const ResumeManager = ({ showToast }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || uploading) return;
 
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       showToast?.('error', 'Only PDF files are supported for resumes.');
       return;
     }
 
+    let publicUrl = null;
     try {
       setUploading(true);
-      const publicUrl = await uploadFile(BUCKETS.RESUMES, file);
+      publicUrl = await uploadFile(BUCKETS.RESUMES, file);
 
       await createAdminResume({
         file_name: file.name,
@@ -75,9 +76,13 @@ export const ResumeManager = ({ showToast }) => {
       await refreshData();
     } catch (err) {
       console.error('Resume upload error:', err);
+      if (publicUrl) {
+        await deleteFile(BUCKETS.RESUMES, publicUrl);
+      }
       showToast?.('error', err.message || 'Failed to upload resume PDF.');
     } finally {
       setUploading(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -97,6 +102,9 @@ export const ResumeManager = ({ showToast }) => {
 
     try {
       await deleteAdminResume(deleteTarget.id);
+      if (deleteTarget.file_url && deleteTarget.file_url.includes(BUCKETS.RESUMES)) {
+        await deleteFile(BUCKETS.RESUMES, deleteTarget.file_url);
+      }
       showToast?.('success', `Deleted resume "${deleteTarget.file_name}".`);
       setDeleteTarget(null);
       await loadResumes();

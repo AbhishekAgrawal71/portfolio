@@ -18,7 +18,7 @@ import {
   updateAdminCertificate,
   deleteAdminCertificate
 } from '../../services/portfolioService';
-import { uploadFile, BUCKETS } from '../../services/storageService';
+import { uploadFile, deleteFile, BUCKETS } from '../../services/storageService';
 import ConfirmModal from '../components/ConfirmModal';
 import { usePortfolioData } from '../../context/PortfolioContext';
 
@@ -160,6 +160,12 @@ export const CertificatesManager = ({ showToast }) => {
 
     try {
       await deleteAdminCertificate(deleteTarget.id);
+      if (deleteTarget.image_url && deleteTarget.image_url.includes(BUCKETS.CERTIFICATES)) {
+        await deleteFile(BUCKETS.CERTIFICATES, deleteTarget.image_url);
+      }
+      if (deleteTarget.pdf_url && deleteTarget.pdf_url.includes(BUCKETS.CERTIFICATES)) {
+        await deleteFile(BUCKETS.CERTIFICATES, deleteTarget.pdf_url);
+      }
       showToast?.('success', `Deleted "${deleteTarget.title}".`);
       setDeleteTarget(null);
       await loadCertificates();
