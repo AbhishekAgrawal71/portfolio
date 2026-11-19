@@ -1,10 +1,13 @@
 import { GraduationCap, Calendar, Award } from 'lucide-react';
-import education from '../data/education';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import './Education.css';
 
 const Education = () => {
-  if (!education || education.length === 0) return null;
+  const { education, settings } = usePortfolioData();
+  const visibleEdu = (education || []).filter(e => e.isVisible !== false);
+
+  if (settings?.show_education === 'false' || !visibleEdu || visibleEdu.length === 0) return null;
 
   return (
     <section id="education" className="education-section">
@@ -12,7 +15,7 @@ const Education = () => {
         <SectionTitle title="Education" />
 
         <div className="education-timeline animate-on-scroll">
-          {education.map((edu, index) => (
+          {visibleEdu.map((edu, index) => (
             <div className="education-card" key={index}>
               <div className="education-card-icon">
                 <GraduationCap size={28} />

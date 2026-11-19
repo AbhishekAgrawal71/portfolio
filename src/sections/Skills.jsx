@@ -1,5 +1,5 @@
-import { Code, Globe, Brain, Library, BookOpen, Wrench, Cpu } from 'lucide-react';
-import skills from '../data/skills';
+import { Code, Globe, Brain, Library, BookOpen, Wrench, Cpu, Database, Server, Terminal, Laptop } from 'lucide-react';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import SkillBadge from '../components/SkillBadge';
 import './Skills.css';
@@ -13,10 +13,17 @@ const iconMap = {
   BookOpen,
   Wrench,
   Cpu,
+  Database,
+  Server,
+  Terminal,
+  Laptop,
 };
 
 const Skills = () => {
-  if (!skills || skills.length === 0) return null;
+  const { skills, settings } = usePortfolioData();
+  const visibleCategories = (skills || []).filter(c => c.isVisible !== false);
+
+  if (settings?.show_skills === 'false' || !visibleCategories || visibleCategories.length === 0) return null;
 
   return (
     <section id="skills" className="skills-section">
@@ -24,7 +31,7 @@ const Skills = () => {
         <SectionTitle title="Skills" />
 
         <div className="skills-grid animate-on-scroll">
-          {skills.map((category, index) => {
+          {visibleCategories.map((category, index) => {
             const IconComponent = iconMap[category.icon] || Code;
             return (
               <div className="skills-category-card" key={index}>

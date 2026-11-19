@@ -1,29 +1,30 @@
 import { Mail, User } from 'lucide-react';
 import { Github } from '../components/Icons';
-import personal from '../data/personal';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import ContactForm from '../components/ContactForm';
 import './Contact.css';
 
 const Contact = () => {
+  const { personal, settings } = usePortfolioData();
   const contactLinks = [
     {
       icon: <Mail size={22} />,
       label: 'Email',
-      value: personal.email,
-      href: personal.email ? `mailto:${personal.email}` : null,
+      value: personal?.email,
+      href: personal?.email ? `mailto:${personal.email}` : null,
     },
     {
       icon: <Github size={22} />,
       label: 'GitHub',
-      value: personal.github ? 'AbhishekAgrawal71' : null,
-      href: personal.github,
+      value: personal?.github ? 'AbhishekAgrawal71' : null,
+      href: personal?.github,
     },
     {
       icon: <User size={22} />,
       label: 'InsiderOne',
-      value: personal.insiderOne ? 'View Profile' : null,
-      href: personal.insiderOne,
+      value: personal?.insiderOne ? 'View Profile' : null,
+      href: personal?.insiderOne,
     },
   ].filter((link) => link.value && link.href);
 
@@ -57,7 +58,7 @@ const Contact = () => {
             </div>
 
             <p className="contact-form-note">
-              * The contact form will open your default email client.
+              {settings?.contact_note || '* The contact form will open your default email client.'}
             </p>
           </div>
 

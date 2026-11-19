@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sun, Moon } from 'lucide-react';
-import { navigationItems } from '../data/navigation';
+import { usePortfolioData } from '../context/PortfolioContext';
 import './Navbar.css';
 
 const Navbar = ({ activeSection, theme, onToggleTheme, toggleTheme }) => {
+  const { personal, projects, experience, education, skills, certificates, achievements, publications, settings } = usePortfolioData();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const handleToggle = onToggleTheme || toggleTheme;
@@ -35,14 +36,27 @@ const Navbar = ({ activeSection, theme, onToggleTheme, toggleTheme }) => {
     }
   };
 
-  // Filter out hidden items (e.g. certificates when empty)
-  const visibleItems = (navigationItems || []).filter(item => !item.hidden);
+  // Build nav items dynamically respecting settings and array lengths
+  const navItems = [
+    { id: 'home', label: 'Home', href: '#home' },
+    { id: 'about', label: 'About', href: '#about' },
+    { id: 'experience', label: 'Experience', href: '#experience', hidden: settings?.show_experience === 'false' || !experience?.length },
+    { id: 'projects', label: 'Projects', href: '#projects', hidden: settings?.show_projects === 'false' || !projects?.length },
+    { id: 'skills', label: 'Skills', href: '#skills', hidden: settings?.show_skills === 'false' || !skills?.length },
+    { id: 'education', label: 'Education', href: '#education', hidden: settings?.show_education === 'false' || !education?.length },
+    { id: 'certificates', label: 'Certificates', href: '#certificates', hidden: settings?.show_certificates === 'false' || !certificates?.length },
+    { id: 'achievements', label: 'Achievements', href: '#achievements', hidden: settings?.show_achievements === 'false' || !achievements?.length },
+    { id: 'research', label: 'Research', href: '#research', hidden: settings?.show_publications === 'false' || !publications?.length },
+    { id: 'contact', label: 'Contact', href: '#contact' },
+  ];
+
+  const visibleItems = navItems.filter(item => !item.hidden);
 
   return (
     <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
       <div className="navbar__container">
         <a href="#home" className="navbar__logo" onClick={(e) => handleNavClick(e, '#home')}>
-          Abhishek Agrawal
+          {personal?.name || 'Abhishek Agrawal'}
         </a>
 
         <div className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`}>

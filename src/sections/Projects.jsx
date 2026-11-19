@@ -1,28 +1,33 @@
 import { useState, useMemo } from 'react';
-import projects from '../data/projects';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import ProjectCard from '../components/ProjectCard';
 import './Projects.css';
 
 const Projects = () => {
+  const { projects, settings } = usePortfolioData();
   const [activeFilter, setActiveFilter] = useState('All');
 
+  const visibleProjects = useMemo(() => {
+    return (projects || []).filter(p => p.isVisible !== false);
+  }, [projects]);
+
   const categories = useMemo(() => {
-    const cats = [...new Set(projects.map((p) => p.category).filter(Boolean))];
+    const cats = [...new Set(visibleProjects.map((p) => p.category).filter(Boolean))];
     return ['All', ...cats];
-  }, []);
+  }, [visibleProjects]);
 
   const filteredProjects = useMemo(() => {
     let filtered = activeFilter === 'All'
-      ? [...projects]
-      : projects.filter((p) => p.category === activeFilter);
+      ? [...visibleProjects]
+      : visibleProjects.filter((p) => p.category === activeFilter);
 
     // Featured projects first
     filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     return filtered;
-  }, [activeFilter]);
+  }, [activeFilter, visibleProjects]);
 
-  if (!projects || projects.length === 0) return null;
+  if (settings?.show_projects === 'false' || !visibleProjects || visibleProjects.length === 0) return null;
 
   return (
     <section id="projects" className="projects-section">

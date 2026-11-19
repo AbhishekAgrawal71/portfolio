@@ -1,13 +1,16 @@
 import React from 'react';
 import { ExternalLink, BookOpen, Code2 } from 'lucide-react';
 import { Github } from '../components/Icons';
-import publications from '../data/publications';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import './Research.css';
 
 const Research = () => {
-  // Don't render if no publications
-  if (!publications || publications.length === 0) return null;
+  const { publications, settings } = usePortfolioData();
+  const visiblePubs = (publications || []).filter(p => p.isVisible !== false);
+
+  // Don't render if no publications or hidden in settings
+  if (settings?.show_publications === 'false' || !visiblePubs || visiblePubs.length === 0) return null;
 
   return (
     <section id="research" className="research-section">
@@ -15,7 +18,7 @@ const Research = () => {
         <SectionTitle title="Research & Publications" subtitle="Academic research and publications" />
 
         <div className="research-list animate-on-scroll">
-          {publications.map((pub, index) => {
+          {visiblePubs.map((pub, index) => {
             const paperLink = pub.paperUrl || pub.paper || pub.url || pub.link;
             const codeLink = pub.codeUrl || pub.code;
             const venue = pub.venue || pub.journal;

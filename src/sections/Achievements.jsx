@@ -1,10 +1,13 @@
-import achievements from '../data/achievements';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import AchievementCard from '../components/AchievementCard';
 import './Achievements.css';
 
 const Achievements = () => {
-  if (!achievements || achievements.length === 0) return null;
+  const { achievements, settings } = usePortfolioData();
+  const visibleAch = (achievements || []).filter(a => a.isVisible !== false);
+
+  if (settings?.show_achievements === 'false' || !visibleAch || visibleAch.length === 0) return null;
 
   return (
     <section id="achievements" className="achievements-section">
@@ -12,7 +15,7 @@ const Achievements = () => {
         <SectionTitle title="Achievements & Responsibilities" />
 
         <div className="achievements-grid animate-on-scroll">
-          {achievements.map((achievement, index) => (
+          {visibleAch.map((achievement, index) => (
             <AchievementCard key={achievement.id || index} achievement={achievement} />
           ))}
         </div>

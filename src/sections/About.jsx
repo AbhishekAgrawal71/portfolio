@@ -1,12 +1,14 @@
 import { GraduationCap, Award, Target } from 'lucide-react';
-import personal from '../data/personal';
+import { usePortfolioData } from '../context/PortfolioContext';
 import SectionTitle from '../components/SectionTitle';
 import './About.css';
 
 const About = () => {
+  const { personal, education } = usePortfolioData();
+  const primaryEdu = education?.[0];
   const stats = [
-    { icon: <GraduationCap size={24} />, label: 'Education', value: 'CS @ UPES' },
-    { icon: <Award size={24} />, label: 'CGPA', value: '8.9 / 10' },
+    { icon: <GraduationCap size={24} />, label: 'Education', value: primaryEdu?.institution ? 'CS @ UPES' : 'CS Undergrad' },
+    { icon: <Award size={24} />, label: 'CGPA', value: primaryEdu?.cgpa || '8.9 / 10' },
     { icon: <Target size={24} />, label: 'Focus', value: 'Software Dev & ML' },
   ];
 

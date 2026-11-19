@@ -1,26 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Download, ArrowDown, Mail, ChevronDown } from 'lucide-react';
 import { Github } from '../components/Icons';
-import personal from '../data/personal';
+import { usePortfolioData } from '../context/PortfolioContext';
 import './Hero.css';
 
 const Hero = () => {
+  const { personal, settings } = usePortfolioData();
   const [currentTagline, setCurrentTagline] = useState(0);
   const [fade, setFade] = useState(true);
 
+  const taglines = personal?.taglines || [];
+
   useEffect(() => {
-    if (!personal.taglines || personal.taglines.length <= 1) return;
+    if (!taglines || taglines.length <= 1) return;
 
     const interval = setInterval(() => {
       setFade(false);
       setTimeout(() => {
-        setCurrentTagline((prev) => (prev + 1) % personal.taglines.length);
+        setCurrentTagline((prev) => (prev + 1) % taglines.length);
         setFade(true);
       }, 400);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [taglines.length]);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -38,7 +41,7 @@ const Hero = () => {
       <div className="hero-container">
         <div className="hero-content animate-on-scroll">
           <div className="hero-text">
-            <p className="hero-greeting">Hello, I'm</p>
+            <p className="hero-greeting">{settings?.hero_greeting || "Hello, I'm"}</p>
             <h1 className="hero-name">{personal.name}</h1>
 
             {personal.taglines && personal.taglines.length > 0 && (

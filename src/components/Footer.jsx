@@ -1,25 +1,39 @@
 import React from 'react';
 import { ExternalLink, Mail } from 'lucide-react';
 import { Github, Linkedin, Twitter } from './Icons';
-import { personalInfo } from '../data/personal';
+import { usePortfolioData } from '../context/PortfolioContext';
 import './Footer.css';
 
-const socialLinks = [
-  { key: 'github', url: personalInfo?.github, icon: Github, label: 'GitHub' },
-  { key: 'linkedin', url: personalInfo?.linkedin, icon: Linkedin, label: 'LinkedIn' },
-  { key: 'twitter', url: personalInfo?.twitter, icon: Twitter, label: 'Twitter' },
-  { key: 'insiderOne', url: personalInfo?.insiderOne, icon: ExternalLink, label: 'InsiderOne' },
-];
-
 const Footer = () => {
+  const { personal, socialLinks = [] } = usePortfolioData();
   const year = new Date().getFullYear();
-  const name = personalInfo?.name || 'Abhishek Agrawal';
-  const email = personalInfo?.email;
+  const name = personal?.name || 'Abhishek Agrawal';
+  const email = personal?.email;
 
-  // Filter out social links with no URL
-  const activeSocials = socialLinks.filter(
-    (link) => link.url && link.url.trim() !== ''
-  );
+  // Icon mapper
+  const getIcon = (platform) => {
+    switch (platform?.toLowerCase()) {
+      case 'github': return Github;
+      case 'linkedin': return Linkedin;
+      case 'twitter': return Twitter;
+      default: return ExternalLink;
+    }
+  };
+
+  // Build active list combining database social links or fallback
+  const activeSocials = (socialLinks && socialLinks.length > 0)
+    ? socialLinks.filter(s => s.is_enabled && s.url && s.url.trim() !== '' && !s.url.startsWith('mailto:')).map(s => ({
+        key: s.id || s.platform,
+        url: s.url,
+        icon: getIcon(s.platform),
+        label: s.label || s.platform,
+      }))
+    : [
+        { key: 'github', url: personal?.github, icon: Github, label: 'GitHub' },
+        { key: 'linkedin', url: personal?.linkedin, icon: Linkedin, label: 'LinkedIn' },
+        { key: 'twitter', url: personal?.twitter, icon: Twitter, label: 'Twitter' },
+        { key: 'insiderOne', url: personal?.insiderOne, icon: ExternalLink, label: 'InsiderOne' },
+      ].filter(l => l.url && l.url.trim() !== '');
 
   return (
     <footer className="footer">
@@ -56,9 +70,9 @@ const Footer = () => {
           </div>
         )}
 
-        <p className="footer__copyright">
-          &copy; {year} {name}. All rights reserved.
-        </p>
+        <div className="footer__copyright">
+          <p>© {year} {name}. All rights reserved.</p>
+        </div>
       </div>
     </footer>
   );
