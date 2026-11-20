@@ -23,11 +23,11 @@
 
 .admin-login-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   background: var(--color-card, #12121a);
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 1rem;
-  padding: 2.5rem 2rem;
+  padding: 2.25rem 2rem;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
@@ -35,7 +35,17 @@
 
 .admin-login-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
+}
+
+.admin-login-eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary, #3b82f6);
+  margin-bottom: 0.85rem;
 }
 
 .admin-login-badge {
@@ -51,18 +61,74 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
+.admin-login-badge--success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
 .admin-login-title {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--color-text, #e4e4e7);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.25;
 }
 
 .admin-login-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--color-text-secondary, #a1a1aa);
+  line-height: 1.4;
 }
 
+/* Visitor Notice Banner */
+.admin-visitor-notice {
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 0.75rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.admin-visitor-notice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-visitor-notice-icon {
+  color: var(--color-primary, #3b82f6);
+  flex-shrink: 0;
+}
+
+.admin-visitor-notice-title {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text, #e4e4e7);
+}
+
+.admin-visitor-notice-text {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #a1a1aa);
+  line-height: 1.5;
+  margin: 0 0 0.85rem 0;
+}
+
+.admin-visitor-return-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  text-decoration: none;
+  padding: 0.6rem 1rem;
+  font-size: 0.825rem;
+  font-weight: 500;
+}
+
+/* Alerts */
 .admin-login-alert {
   display: flex;
   gap: 0.75rem;
@@ -97,10 +163,11 @@
   margin-top: 0.1rem;
 }
 
+/* Form Styles */
 .admin-login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.15rem;
 }
 
 .admin-input-icon-wrapper {
@@ -143,24 +210,47 @@
 
 .admin-btn--block {
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   padding: 0.75rem 1rem;
-  font-size: 0.95rem;
+  font-size: 0.925rem;
 }
 
+/* Security Note */
+.admin-security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.5rem;
+  font-size: 0.735rem;
+  color: var(--color-text-muted, #71717a);
+  line-height: 1.45;
+}
+
+.admin-security-icon {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Footer */
 .admin-login-footer {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   text-align: center;
   border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-  padding-top: 1.25rem;
+  padding-top: 1.15rem;
 }
 
 .admin-back-link {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
+  font-size: 0.825rem;
   color: var(--color-text-secondary, #a1a1aa);
+  text-decoration: none;
   transition: color 0.2s;
 }
 
